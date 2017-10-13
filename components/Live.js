@@ -9,28 +9,34 @@ export default class Live extends Component {
   state = {
     coords: null,
     status: null,
-    direction: '',
+    direction: ''
   }
-
-  componentDidMount() {
+  componentDidMount () {
     Permissions.getAsync(Permissions.LOCATION)
       .then(({ status }) => {
         if (status === 'granted') {
-          return this.setLocation
+          return this.setLocation()
         }
 
         this.setState(() => ({ status }))
       })
       .catch((error) => {
         console.warn('Error getting Location permission: ', error)
+
         this.setState(() => ({ status: 'undetermined' }))
       })
   }
-
   askPermission = () => {
+    Permissions.askAsync(Permissions.LOCATION)
+      .then(({ status }) => {
+        if (status === 'granted') {
+          return this.setLocation()
+        }
 
+        this.setState(() => ({ status }))
+      })
+      .catch((error) => console.warn('error asking Location permission: ', error))
   }
-
   setLocation = () => {
     Location.watchPositionAsync({
       enableHighAccuracy: true,
@@ -38,7 +44,7 @@ export default class Live extends Component {
       distanceInterval: 1,
     }, ({ coords }) => {
       const newDirection = calculateDirection(coords.heading)
-      const { direction } = this.state
+      const { direction, bounceValue } = this.state
 
       this.setState(() => ({
         coords,
@@ -47,12 +53,11 @@ export default class Live extends Component {
       }))
     })
   }
-
   render() {
     const { status, coords, direction } = this.state
 
     if (status === null) {
-      return <ActivityIndicator style={{marginTop: 30}} />
+      return <ActivityIndicator style={{marginTop: 30}}/>
     }
 
     if (status === 'denied') {
@@ -73,7 +78,7 @@ export default class Live extends Component {
           <Text>
             You need to enable location services for this app.
           </Text>
-          <TouchableOpacity onPress={this.askPermission} style={styles.button}>
+          <TouchableOpacity style={styles.button} onPress={this.askPermission}>
             <Text style={styles.buttonText}>
               Enable
             </Text>
@@ -86,23 +91,25 @@ export default class Live extends Component {
       <View style={styles.container}>
         <View style={styles.directionContainer}>
           <Text style={styles.header}>You're heading</Text>
-          <Text style={styles.direction}>North</Text>
+          <Text style={styles.direction}>
+            {direction}
+          </Text>
         </View>
         <View style={styles.metricContainer}>
           <View style={styles.metric}>
-            <Text style={[styles.header, { color: white }]}>
+            <Text style={[styles.header, {color: white}]}>
               Altitude
             </Text>
-            <Text style={[styles.subHeader, { color: white }]}>
-              {200} Feet
+            <Text style={[styles.subHeader, {color: white}]}>
+              {Math.round(coords.altitude * 3.2808)} Feet
             </Text>
           </View>
           <View style={styles.metric}>
-            <Text style={[styles.header, { color: white }]}>
+            <Text style={[styles.header, {color: white}]}>
               Speed
             </Text>
-            <Text style={[styles.subHeader, { color: white }]}>
-              {300} MPH
+            <Text style={[styles.subHeader, {color: white}]}>
+              {(coords.speed * 2.2369).toFixed(1)} MPH
             </Text>
           </View>
         </View>
@@ -110,7 +117,6 @@ export default class Live extends Component {
     )
   }
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -124,13 +130,13 @@ const styles = StyleSheet.create({
     marginRight: 30,
   },
   button: {
-    padding: 30,
+    padding: 10,
     backgroundColor: purple,
     alignSelf: 'center',
     borderRadius: 5,
     margin: 20,
   },
-  buttonText: {
+  buttonText :{
     color: white,
     fontSize: 20,
   },
@@ -150,7 +156,7 @@ const styles = StyleSheet.create({
   metricContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: purple
+    backgroundColor: purple,
   },
   metric: {
     flex: 1,
